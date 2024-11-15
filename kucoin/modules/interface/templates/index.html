@@ -1,0 +1,174 @@
+<!-- modules/interface/templates/index.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trading Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <style>
+        .card { margin-bottom: 20px; }
+        .positive { color: green; }
+        .negative { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <!-- Status Card -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        Bot Status
+                    </div>
+                    <div class="card-body">
+                        <p>Status: <span id="bot-status">Loading...</span></p>
+                        <p>Uptime: <span id="uptime">0:00:00</span></p>
+                        <p>Trades Today: <span id="trades-today">0</span></p>
+                        <p>PnL Today: <span id="pnl-today">$0.00</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Pairs -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        Active Trading Pairs
+                    </div>
+                    <div class="card-body" id="trading-pairs">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Positions -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        Open Positions
+                    </div>
+                    <div class="card-body" id="positions">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        Performance Metrics
+                    </div>
+                    <div class="card-body" id="performance">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Trades -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        Recent Trades
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Symbol</th>
+                                    <th>Type</th>
+                                    <th>Price</th>
+                                    <th>Size</th>
+                                    <th>PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="trades-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        
+        // Handle market data updates
+        socket.on('market_data', function(data) {
+            updateMarketData(data);
+        });
+
+        // Handle trade updates
+        socket.on('trade', function(data) {
+            addTrade(data);
+        });
+
+        // Handle position updates
+        socket.on('position', function(data) {
+            updatePositions(data);
+        });
+
+        // Update functions
+        function updateMarketData(data) {
+            const pairDiv = document.getElementById('trading-pairs');
+            // Update trading pair information
+        }
+
+        function addTrade(trade) {
+            const tbody = document.getElementById('trades-table');
+            const row = document.createElement('tr');
+            
+            const time = new Date(trade.timestamp).toLocaleTimeString();
+            const pnlClass = trade.pnl > 0 ? 'positive' : 'negative';
+            
+            row.innerHTML = `
+                <td>${time}</td>
+                <td>${trade.symbol}</td>
+                <td>${trade.type}</td>
+                <td>$${trade.price.toFixed(2)}</td>
+                <td>${trade.size}</td>
+                <td class="${pnlClass}">${trade.pnl ? '$' + trade.pnl.toFixed(2) : '-'}</td>
+            `;
+            
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function updatePositions(positions) {
+            const positionsDiv = document.getElementById('positions');
+            // Update positions information
+        }
+
+        // Fetch initial data
+        async function fetchInitialData() {
+            try {
+                const [status, trades, performance] = await Promise.all([
+                    fetch('/api/status').then(r => r.json()),
+                    fetch('/api/trades').then(r => r.json()),
+                    fetch('/api/performance').then(r => r.json())
+                ]);
+
+                // Update status
+                document.getElementById('bot-status').textContent = status.status;
+                document.getElementById('uptime').textContent = status.uptime;
+                document.getElementById('trades-today').textContent = status.trades_today;
+                document.getElementById('pnl-today').textContent = `$${status.pnl_today.toFixed(2)}`;
+
+                // Add recent trades
+                trades.slice(-10).reverse().forEach(addTrade);
+
+                // Update performance metrics
+                updatePerformance(performance);
+
+            } catch (error) {
+                console.error('Error fetching initial data:', error);
+            }
+        }
+
+        // Initialize
+        fetchInitialData();
+        setInterval(fetchInitialData, 60000); // Refresh every minute
+    </script>
+</body>
+</html>

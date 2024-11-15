@@ -1,0 +1,4 @@
+kucoin-python
+python-dotenv
+pandas
+requests
